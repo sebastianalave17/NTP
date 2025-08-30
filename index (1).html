@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NTP v4 — No te paltees (fondo degradado dinámico)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root{--glass: rgba(255,255,255,.78);--glass-dark: rgba(17,24,39,.6)}
+    html{scroll-behavior:smooth}
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; margin:0; color:#0f172a; min-height:100vh; background:#eef2ff;}
+
+    /* Dynamic animated gradient background (CSS only, offline) */
+    .animated-bg {
+      position:fixed;
+      inset:0;
+      z-index:-1;
+      overflow:hidden;
+      filter:blur(28px) saturate(1.05);
+      pointer-events:none;
+    }
+    .animated-bg .g {
+      position:absolute;
+      width:140vmax;
+      height:140vmax;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%) rotate(0deg);
+      background: radial-gradient(closest-side, rgba(124,58,237,0.35), rgba(236,72,153,0.18) 35%, rgba(99,102,241,0.06) 60%, transparent 70%);
+      border-radius:50%;
+      mix-blend-mode: screen;
+      animation: float1 18s ease-in-out infinite;
+      opacity:0.95;
+    }
+    .animated-bg .g.g2 {
+      background: radial-gradient(closest-side, rgba(34,197,94,0.25), rgba(14,165,233,0.18) 30%, rgba(99,102,241,0.06) 60%, transparent 70%);
+      animation: float2 20s ease-in-out infinite;
+      transform: translate(-60%,-40%) rotate(40deg);
+      opacity:0.9;
+    }
+    .animated-bg .g.g3 {
+      background: radial-gradient(closest-side, rgba(253,224,71,0.22), rgba(236,72,153,0.12) 30%, transparent 60%);
+      animation: float3 22s ease-in-out infinite;
+      transform: translate(-40%,-60%) rotate(-24deg);
+      opacity:0.85;
+    }
+
+    @keyframes float1 {
+      0% { transform: translate(-50%,-50%) rotate(0deg) scale(1); }
+      50% { transform: translate(-52%,-48%) rotate(20deg) scale(1.06); }
+      100% { transform: translate(-50%,-50%) rotate(0deg) scale(1); }
+    }
+    @keyframes float2 {
+      0% { transform: translate(-60%,-40%) rotate(40deg) scale(1); }
+      50% { transform: translate(-58%,-42%) rotate(10deg) scale(1.05); }
+      100% { transform: translate(-60%,-40%) rotate(40deg) scale(1); }
+    }
+    @keyframes float3 {
+      0% { transform: translate(-40%,-60%) rotate(-24deg) scale(1); }
+      50% { transform: translate(-42%,-58%) rotate(-6deg) scale(1.04); }
+      100% { transform: translate(-40%,-60%) rotate(-24deg) scale(1); }
+    }
+
+    /* layout & UI */
+    .container { max-width:1100px; margin:0 auto; padding:28px; }
+    .glass-card{background:var(--glass); backdrop-filter: blur(6px); border-radius:12px}
+    .glass-card-dark{background:var(--glass-dark); backdrop-filter: blur(6px); border-radius:12px; color:#fff}
+    @keyframes popIn{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+    .pop-in{animation:popIn .32s ease-out both}
+    .confetti{position:fixed; left:50%; top:22%; transform:translate(-50%,-50%); font-size:26px; pointer-events:none; z-index:80}
+
+    .chat-box{display:flex;flex-direction:column;gap:6px;padding:12px;overflow:auto;min-height:220px;max-height:360px}
+    .msg-user{background:#4338ca;color:#fff;border-radius:12px;padding:8px 12px;margin:6px 0;align-self:flex-end;max-width:80%}
+    .msg-ai{background:#eef2ff;color:#0f172a;border-radius:12px;padding:8px 12px;margin:6px 0;align-self:flex-start;max-width:80%}
+    .btn-ghost{background:white;border:1px solid rgba(15,23,42,.06);padding:8px 12px;border-radius:10px}
+    @media(min-width:900px){ .layout-grid{display:grid;grid-template-columns:1fr 420px;gap:24px} }
+
+    /* make cards readable on top of background */
+    .glass-card, .glass-card p, .glass-card h3, .glass-card h2 { color: #0f172a; }
+    .dark .glass-card, .dark .glass-card p, .dark .glass-card h3, .dark .glass-card h2 { color: #e6eef8; }
+  </style>
+
+<style>
+  body.dark-mode {
+    background: linear-gradient(270deg, #0f0f0f, #1e1e1e, #333, #444);
+    background-size: 800% 800%;
+    animation: gradient 15s ease infinite;
+    color: #fff;
+  }
+  body.dark-mode .card, 
+  body.dark-mode section, 
+  body.dark-mode .section {
+    background-color: #222 !important;
+    color: #fff !important;
+    border: 1px solid #444;
+  }
+  body.light-mode {
+    background: linear-gradient(270deg, #ffecd2, #fcb69f, #ffdde1, #c2e9fb);
+    background-size: 800% 800%;
+    animation: gradient 15s ease infinite;
+    color: #000;
+  }
+  body.light-mode .card, 
+  body.light-mode section, 
+  body.light-mode .section {
+    background-color: #fff !important;
+    color: #000 !important;
+    border: 1px solid #ddd;
+  }
+</style>
+
+</head>
+<body class="antialiased">
+
+  <!-- animated gradient background -->
+  <div class="animated-bg" aria-hidden="true">
+    <div class="g g1" aria-hidden="true"></div>
+    <div class="g g2" aria-hidden="true"></div>
+    <div class="g g3" aria-hidden="true"></div>
+  </div>
+
+  <div class="container">
+
+    <header class="mb-6 flex items-center gap-4">
+      <div class="h-12 w-12 rounded-xl bg-gradient-to-tr from-indigo-600 to-pink-500 grid place-items-center text-white font-bold">N</div>
+      <div>
+        <div class="text-lg font-semibold">NTP <span class="text-sm text-slate-50/80">(No te paltees)</span></div>
+        <div class="text-xs" style="opacity:.9">Espacio seguro para mejorar tu autoestima — offline</div>
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        <button id="settingsBtn" class="btn-ghost text-sm">Ajustes</button>
+        <button id="profileBtn" class="btn-ghost text-sm">Perfil</button>
+      </div>
+    </header>
+
+    <div class="layout-grid">
+
+      <div class="space-y-6">
+
+        <!-- Hero -->
+        <section class="glass-card p-6 pop-in" style="min-height:260px; display:flex; align-items:center;">
+          <div style="flex:1; display:flex; gap:18px; align-items:center;">
+            <div style="flex:1">
+              <!-- simple SVG "image" but background is animated gradient behind page -->
+              <svg viewBox="0 0 900 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect width="900" height="300" fill="transparent"/>
+                <g transform="translate(40,30)" fill="#0f172a" opacity="0.95">
+                  <circle cx="120" cy="150" r="60" fill="rgba(15,23,42,.05)"/>
+                </g>
+                <text x="60" y="90" font-size="38" fill="#0b1220" font-weight="700" font-family="Inter, sans-serif">Bienvenido a NTP</text>
+                <text x="60" y="130" font-size="18" fill="#0b1220">Pequeños pasos. Grandes cambios. Mantén tu racha.</text>
+              </svg>
+            </div>
+            <div style="width:320px; display:flex; flex-direction:column; gap:10px;">
+              <div class="glass-card p-3">
+                <div class="text-sm font-semibold">Frase del día</div>
+                <div id="dailyPhrase" class="mt-2 text-sm">Siempre eres más fuerte de lo que crees.</div>
+              </div>
+              <div class="glass-card p-3 flex gap-2 items-center">
+                <div class="flex-1 text-sm">¿Listo para hoy?</div>
+                <button id="markTodayHero" class="px-3 py-2 rounded-md bg-emerald-600 text-white text-sm">Marcar cumplido</button>
+              </div>
+            </div>
+          
+<div class="setting-item">
+  <label for="theme-toggle">🌗 Cambiar Tema:</label>
+  <button id="theme-toggle" style="padding: 5px 10px; margin-left: 10px; border-radius: 8px; cursor: pointer;">
+    Alternar
+  </button>
+</div>
+
+</div>
+        </section>
+
+        <!-- Cards row -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <article class="glass-card p-4 flex gap-3 items-start">
+            <div aria-hidden="true">
+              <svg width="64" height="64" viewBox="0 0 64 64"><rect rx="12" width="64" height="64" fill="#fff7ed"/><path d="M20 38c0-6.627 5.373-12 12-12s12 5.373 12 12" stroke="#fb923c" stroke-width="2" fill="none"/><circle cx="32" cy="26" r="6" fill="#fb923c"/></svg>
+            </div>
+            <div>
+              <h3 class="font-semibold">Consejos prácticos</h3>
+              <p class="text-sm mt-1">Afirmaciones, límites y hábitos para fortalecer tu autoestima.</p>
+              <div class="mt-3 flex gap-2">
+                <button class="btn-ghost text-sm" id="openConsejos">Ver consejos</button>
+                <button class="btn-ghost text-sm" id="favTip">Sugerir tip</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="glass-card p-4 flex gap-3 items-start">
+            <div aria-hidden="true">
+              <svg width="64" height="64" viewBox="0 0 64 64"><rect rx="12" width="64" height="64" fill="#eff6ff"/><path d="M16 44h32v4H16z" fill="#3b82f6"/><rect x="20" y="20" width="24" height="16" rx="3" fill="#bfdbfe"/></svg>
+            </div>
+            <div>
+              <h3 class="font-semibold">Reto 21 días</h3>
+              <p class="text-sm mt-1">Escribe 3 cualidades, medita 3 min, agradece. Mantén tu racha diaria.</p>
+              <div class="mt-3 flex gap-2">
+                <button class="btn-ghost text-sm" id="openReto">Abrir reto</button>
+                <button class="btn-ghost text-sm" id="viewCalendar">Ver calendario</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="glass-card p-4 flex gap-3 items-start">
+            <div aria-hidden="true">
+              <svg width="64" height="64" viewBox="0 0 64 64"><rect rx="12" width="64" height="64" fill="#ecfeff"/><path d="M18 44c6-6 28-6 34 0" stroke="#06b6d4" stroke-width="2" fill="none"/><circle cx="28" cy="28" r="6" fill="#06b6d4"/></svg>
+            </div>
+            <div>
+              <h3 class="font-semibold">Historias reales</h3>
+              <p class="text-sm mt-1">Comparte tu avance anónimo o con nombre. Inspira a otros.</p>
+              <div class="mt-3 flex gap-2">
+                <button class="btn-ghost text-sm" id="openStories">Compartir</button>
+                <button class="btn-ghost text-sm" id="readStories">Leer</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="glass-card p-4 flex gap-3 items-start">
+            <div aria-hidden="true">
+              <svg width="64" height="64" viewBox="0 0 64 64"><rect rx="12" width="64" height="64" fill="#f0fdf4"/><path d="M20 30h24v10H20z" fill="#34d399"/><path d="M18 18h28v6H18z" fill="#bbf7d0"/></svg>
+            </div>
+            <div>
+              <h3 class="font-semibold">Recursos</h3>
+              <p class="text-sm mt-1">Libros, podcasts y ejercicios guiados listados offline.</p>
+              <div class="mt-3">
+                <button class="btn-ghost text-sm" id="openRecursos">Ver recursos</button>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <!-- Blog / Tips area -->
+        <section class="glass-card p-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Blog y tips</h3>
+            <div class="text-sm" style="opacity:.9">Comparte un consejo breve</div>
+          </div>
+          <form id="tipForm" class="mt-3 grid gap-2 grid-cols-1 md:grid-cols-3">
+            <input id="tipTitle" placeholder="Título corto" class="px-3 py-2 rounded-md border" />
+            <input id="tipAuthor" placeholder="Tu nombre (opcional)" class="px-3 py-2 rounded-md border" />
+            <button class="px-4 py-2 rounded-md bg-indigo-600 text-white">Publicar</button>
+            <textarea id="tipBody" placeholder="Escribe un consejo breve..." class="md:col-span-3 px-3 py-2 rounded-md border"></textarea>
+          </form>
+          <div id="tipsList" class="mt-4 grid gap-3"></div>
+        </section>
+
+      </div>
+
+      <!-- Right column -->
+      <aside class="space-y-4">
+
+        <div class="glass-card p-4 pop-in" aria-live="polite">
+          <div class="flex items-center justify-between">
+            <div><strong>Chat motivador</strong><div class="text-xs" style="opacity:.8">IA local offline — respuestas motivadoras</div></div>
+            <div class="text-sm" style="opacity:.8">Modo offline</div>
+          </div>
+
+          <div id="chatBox" class="chat-box mt-3"></div>
+
+          <form id="chatForm" class="mt-3 flex gap-2">
+            <input id="chatInput" placeholder="Escribe cómo te sientes..." class="flex-1 px-3 py-2 rounded-md border" />
+            <button class="px-3 py-2 rounded-md bg-indigo-600 text-white">Enviar</button>
+          </form>
+
+          <div class="mt-3 flex gap-2">
+            <button id="motivateBtn" class="px-3 py-2 rounded-md bg-emerald-600 text-white text-sm">Envíame ánimo</button>
+            <button id="dailyBtn" class="px-3 py-2 rounded-md border text-sm">Consejo del día</button>
+          </div>
+        </div>
+
+        <div class="glass-card p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm">Tu racha</div>
+              <div id="streakPillSmall" class="font-semibold text-lg">🔥 0</div>
+            </div>
+            <div class="text-sm" style="opacity:.8">Progreso guardado en tu navegador</div>
+          </div>
+        </div>
+
+        <div class="glass-card p-4">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold">Logros</div>
+            <div class="text-xs" style="opacity:.8">Desbloquea con rachas</div>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <div class="p-2 rounded-md bg-white/80"><svg width="40" height="40" viewBox="0 0 24 24"><path fill="#fbbf24" d="M12 2l2.7 5.5L20 9l-4 3.6L17.3 20 12 16.8 6.7 20 8 12.6 4 9l5.3-1.5z"/></svg></div>
+            <div class="p-2 rounded-md bg-white/80"><svg width="40" height="40" viewBox="0 0 24 24"><path fill="#60a5fa" d="M12 3C8 3 5 6 5 10s3 7 7 7 7-3 7-7-3-7-7-7z"/></svg></div>
+            <div class="p-2 rounded-md bg-white/80"><svg width="40" height="40" viewBox="0 0 24 24"><path fill="#34d399" d="M12 2l2 5h5l-4 3 1 5-4-3-4 3 1-5L5 7h5z"/></svg></div>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+
+    <footer class="mt-8 text-xs" style="opacity:.85">NTP — demo offline • Datos guardados en tu navegador • Diseñado para apoyo y motivación</footer>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settingsModal" class="fixed inset-0 hidden items-center justify-center z-50">
+    <div id="settingsOverlay" class="absolute inset-0 bg-black/40"></div>
+    <div class="relative w-full max-w-lg p-6 rounded-lg bg-white shadow">
+      <h3 class="font-semibold">Ajustes</h3>
+      <div class="mt-3 space-y-3">
+        <div class="flex items-center justify-between"><label>Tema</label>
+          <select id="themeSel" class="px-3 py-2 rounded-md border"><option value="system">Sistema</option><option value="light">Claro</option><option value="dark">Oscuro</option></select></div>
+        <div class="flex items-center justify-between"><label>Intensidad del fondo</label>
+          <select id="bgIntensity" class="px-3 py-2 rounded-md border"><option value="soft">Suave</option><option value="normal">Normal</option><option value="vivid">Vívido</option></select></div>
+        <div class="flex items-center justify-between"><label>Notificaciones</label><input id="notifToggle" type="checkbox" /></div>
+        <div><h4 class="font-semibold">Perfil (demo)</h4>
+          <div class="mt-2 flex gap-2"><button data-login="google" class="px-3 py-1 rounded-md border">Google</button><button data-login="facebook" class="px-3 py-1 rounded-md border">Facebook</button><button id="logoutBtn" class="px-3 py-1 rounded-md bg-rose-500 text-white">Cerrar sesión</button></div>
+          <div id="profileInfo" class="mt-2 text-sm" style="opacity:.85"></div>
+        </div>
+      </div>
+      <div class="mt-4 text-right"><button id="closeSettings" class="px-3 py-2 rounded-md bg-indigo-600 text-white">Listo</button></div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed right-6 bottom-6 hidden px-4 py-2 rounded-md bg-emerald-600 text-white z-60"></div>
+  <div id="confettiRoot" aria-hidden="true"></div>
+
+  <audio id="sfx" preload="auto" src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAAAACAAACcQAAAAAAAAAAAAAAAAAAAAAA//sQxAABAAAACAAAAC4A//uQZAAAAAEAAAC0AAD//sQxAAAAAEAAAARAAA="></audio>
+
+  <script>
+    // Utilities
+    const $ = (sel,root=document)=> root.querySelector(sel);
+    const $$ = (sel,root=document)=> Array.from(root.querySelectorAll(sel));
+    const store = { get(k,d=null){try{return JSON.parse(localStorage.getItem(k)) ?? d}catch{return d}}, set(k,v){localStorage.setItem(k, JSON.stringify(v))} };
+
+    // Init default settings
+    if (!store.get('ntp_settings')) store.set('ntp_settings', { theme:'system', bgIntensity:'normal', notifications:false });
+
+    // Apply settings
+    function applySettings(){
+      const s = store.get('ntp_settings');
+      $('#themeSel').value = s.theme || 'system';
+      $('#bgIntensity').value = s.bgIntensity || 'normal';
+      $('#notifToggle').checked = !!s.notifications;
+      // theme
+      if (s.theme === 'dark'){ document.documentElement.classList.add('dark'); document.body.style.color='#e6eef8' } else { document.documentElement.classList.remove('dark'); document.body.style.color='#0b1220' }
+      // intensity: adjust opacity/blur
+      const g1 = document.querySelector('.animated-bg .g1');
+      const g2 = document.querySelector('.animated-bg .g2');
+      const g3 = document.querySelector('.animated-bg .g3');
+      if (s.bgIntensity === 'soft') { g1.style.opacity = 0.5; g2.style.opacity = 0.4; g3.style.opacity = 0.35; document.querySelector('.animated-bg').style.filter='blur(36px) saturate(.95)'; }
+      else if (s.bgIntensity === 'vivid') { g1.style.opacity = 1; g2.style.opacity = 1; g3.style.opacity = 0.95; document.querySelector('.animated-bg').style.filter='blur(12px) saturate(1.1)'; }
+      else { g1.style.opacity = 0.95; g2.style.opacity = 0.9; g3.style.opacity = 0.85; document.querySelector('.animated-bg').style.filter='blur(28px) saturate(1.05)'; }
+      const u = store.get('ntp_user', null); $('#profileInfo').textContent = u ? `Conectado: ${u.name} (${u.provider})` : 'No conectado (demo)';
+    }
+
+    // Toast helper
+    function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.remove('hidden'); setTimeout(()=> t.classList.add('hidden'), 2600); }
+
+    // Modal controls
+    $('#settingsBtn').addEventListener('click', ()=> { $('#settingsModal').classList.remove('hidden'); $('#settingsModal').classList.add('flex'); applySettings(); });
+    $('#closeSettings').addEventListener('click', ()=> { $('#settingsModal').classList.add('hidden'); const newS = { theme: $('#themeSel').value, bgIntensity: $('#bgIntensity').value, notifications: $('#notifToggle').checked }; store.set('ntp_settings', newS); applySettings(); toast('Ajustes guardados') });
+    $('#settingsOverlay').addEventListener('click', ()=> $('#settingsModal').classList.add('hidden'));
+
+    // Mock OAuth
+    $$('[data-login]').forEach(btn=> btn.addEventListener('click', ()=>{
+      const prov = btn.getAttribute('data-login');
+      const name = prompt('Nombre para mostrar (demo):','Invitado');
+      if (!name) return;
+      store.set('ntp_user', { name, provider: prov, id: 'demo-'+Math.random().toString(36).slice(2,9) });
+      applySettings(); toast('Sesión iniciada (demo)');
+      renderStreak();
+    }));
+    $('#logoutBtn').addEventListener('click', ()=> { localStorage.removeItem('ntp_user'); applySettings(); toast('Sesión cerrada'); renderStreak(); });
+
+    // Progress functions
+    function todayKey(){ return new Date().toISOString().slice(0,10); }
+    function getProgress(){ return store.get('ntp_progress', { days:{}, streak:0, lastDone:null, achievements:{} }); }
+    function saveProgress(p){ store.set('ntp_progress', p); renderStreak(); }
+    function isConsecutive(a,b){ const da=new Date(a), db=new Date(b); return Math.round((db-da)/(1000*60*60*24))===1; }
+
+    function markToday(){
+      const p = getProgress(); const t = todayKey();
+      if (p.days[t]) return toast('Ya marcaste hoy ✅');
+      p.days[t]=true;
+      if (!p.lastDone || isConsecutive(p.lastDone,t)) p.streak = (p.streak||0)+1; else p.streak = 1;
+      p.lastDone = t; saveProgress(p); playSfx(); maybeCelebrate(p); toast('Bien hecho — día marcado');
+    }
+    $('#markTodayHero').addEventListener('click', markToday);
+
+    function renderCalendar(){
+      const wrap = document.getElementById('calendar'); if(!wrap) return; wrap.innerHTML='';
+      const p = getProgress(); const days = 21;
+      for (let i=1;i<=days;i++){ const box = document.createElement('div'); box.className='aspect-square rounded-md grid place-items-center text-sm border bg-white'; const d=new Date(); d.setDate(d.getDate()-(days-i)); const k=d.toISOString().slice(0,10); box.textContent = i; if (p.days[k]) { box.classList.add('bg-emerald-500','text-white') } wrap.appendChild(box) }
+    }
+
+    function renderStreak(){ const p = getProgress(); $('#streakPillSmall').textContent = '🔥 ' + (p.streak||0); $('#streakPillSmall').setAttribute('title','Racha actual: '+(p.streak||0)+' días'); const sp = document.getElementById('streakPill'); if (sp) sp.textContent = '🔥 Racha: ' + (p.streak||0) + ' día(s)'; renderCalendar() }
+
+    // Achievements & confetti
+    const phrases = ['¡Crack total! 🏆','¡Así se hace! 💪','¡Vas con todo! 🚀','¡Orgullo máximo! 🌟','¡Campeón/a! 🎉'];
+    function maybeCelebrate(p){
+      const milestones=[1,3,7,14,21,30];
+      if (milestones.includes(p.streak) && !p.achievements[p.streak]){
+        p.achievements[p.streak]=true; saveProgress(p);
+        confettiBurst(); toast(phrases[Math.floor(Math.random()*phrases.length)] + ' — Racha ' + p.streak);
+      }
+    }
+    function confettiBurst(){ const root = $('#confettiRoot'); const el = document.createElement('div'); el.className='confetti pop-in'; el.textContent = ['🎉','✨','🌟','🎊','💫','🏆'][Math.floor(Math.random()*6)]; root.appendChild(el); setTimeout(()=> el.remove(),1200); }
+
+    function playSfx(){ try{ $('#sfx').currentTime=0; $('#sfx').play().catch(()=>{}); }catch(e){} }
+
+    // Challenges (persist)
+    const challenges = [{id:'c1',title:'Escribir 3 cualidades'},{id:'c2',title:'Meditación 3 min'},{id:'c3',title:'Decir NO a algo pequeño'}];
+    function renderChallenges(){
+      const wrap = $('#challenges'); if(!wrap) return; wrap.innerHTML='';
+      const accepted = store.get('ntp_challenges', {});
+      challenges.forEach(ch=>{
+        const row=document.createElement('div'); row.className='flex items-center justify-between';
+        const left=document.createElement('div'); left.textContent = ch.title;
+        const btn=document.createElement('button'); btn.className='px-3 py-1 rounded-md text-sm';
+        if (accepted[ch.id]){ btn.textContent='Completado'; btn.disabled=true; btn.classList.add('bg-emerald-600','text-white') } else { btn.textContent='Aceptar'; btn.classList.add('bg-indigo-600','text-white'); btn.onclick=()=>{ acceptChallenge(ch.id) } }
+        row.appendChild(left); row.appendChild(btn); wrap.appendChild(row);
+      });
+    }
+    function acceptChallenge(id){ const acc = store.get('ntp_challenges', {}); acc[id]=true; store.set('ntp_challenges', acc); renderChallenges(); toast('Desafío aceptado'); playSfx() }
+
+    // Tips and blog
+    function addTip(e){ e.preventDefault(); const title=$('#tipTitle').value.trim(), name=$('#tipAuthor').value.trim()||'Anónimo', body=$('#tipBody').value.trim(); if(!title||!body){ toast('Título y texto requeridos'); return } const arr = store.get('ntp_tips', []); arr.unshift({title,name,body,date:new Date().toLocaleString()}); store.set('ntp_tips', arr); e.target.reset(); renderTips(); toast('Publicado') }
+    function renderTips(){ const wrap = $('#tipsList'); if(!wrap) return; wrap.innerHTML=''; const arr = store.get('ntp_tips',[]); arr.forEach(t=>{ const el=document.createElement('div'); el.className='p-3 rounded-md bg-white'; el.innerHTML = `<div class="font-semibold">${t.title}</div><div class="text-xs" style="opacity:.7">${t.name} • ${t.date}</div><p class="mt-1 text-sm">${t.body}</p>`; wrap.appendChild(el) }) }
+
+    $('#tipForm').addEventListener('submit', addTip);
+
+    // Chat IA local enhanced
+    const motivators = [
+      'Eres capaz de más de lo que imaginas. Respira y adelante.',
+      'Un paso pequeño cada día suma grandes cambios.',
+      'Recuerda: mereces ser tratado con respeto — comienza por respetarte tú.',
+      'Hoy es un buen día para practicar un acto de autocuidado.',
+      'Los errores son evidencia de que estás intentando. Sigue así.'
+    ];
+    const empathetic = {
+      triste: ['Siento que te sientas triste. ¿Puedes decirme una cosa pequeña que salió bien hoy?','Es válido sentirse así. Intenta respirar profundo 3 veces.'],
+      ansied: ['La ansiedad puede calmarse con ejercicios de grounding. ¿Quieres uno rápido?','Prueba escribir qué sientes ahora, sin juzgar.'],
+      miedo: ['El miedo es normal. ¿Qué parte te preocupa más?','Divide el problema en pasos pequeños y verás que es manejable.'],
+      fracaso: ['Un fallo no te define. ¿Qué aprendiste de esto?','Reenfocar: ¿qué harías distinto mañana?']
+    };
+
+    function saveChat(msg, who){ const conv = store.get('ntp_conv', []); conv.push({who, text:msg, time:new Date().toISOString()}); store.set('ntp_conv', conv); }
+
+    function pushMsg(text, who='ai'){ const box = $('#chatBox'); const el = document.createElement('div'); el.className = who==='user' ? 'msg-user' : 'msg-ai'; el.textContent = text; box.appendChild(el); box.scrollTop = box.scrollHeight; saveChat(text, who); }
+
+    function aiReply(msg){
+      const m = msg.toLowerCase();
+      if (m.includes('ánimo') || m.includes('animo') || m.includes('motiva')) return random(motivators);
+      if (m.includes('consejo') || m.includes('tip') || m.includes('recomienda')) return 'Un consejo: escribe 3 cosas buenas de ti hoy. Pequeños pasos cuentan.';
+      for (const k in empathetic){ if (m.includes(k)) return random(empathetic[k]); }
+      if (m.includes('gracias') || m.includes('thank')) return '¡De nada! Me alegra poder ayudarte.';
+      if (m.includes('hola') || m.includes('buenos')) return '¡Hola! ¿Cómo te sientes hoy?';
+      if (m.includes('reto') || m.includes('racha')) return 'Puedes marcar tu día completado en la sección Reto 21 días. Mantén la constancia.';
+      const fallback = ['Te escucho. ¿Qué te gustaría mejorar hoy?','Gracias por compartir. ¿Qué pasó exactamente?','Interesante — cuéntame más o escribe \"ánimo\" para recibir una frase motivadora.'];
+      return random(fallback);
+    }
+    function random(arr){ return Array.isArray(arr) ? arr[Math.floor(Math.random()*arr.length)] : arr; }
+
+    $('#chatForm').addEventListener('submit', e=>{ e.preventDefault(); const v = $('#chatInput').value.trim(); if(!v) return; pushMsg(v,'user'); $('#chatInput').value=''; setTimeout(()=> { const r = aiReply(v); pushMsg(r,'ai'); }, 350) });
+    $('#motivateBtn').addEventListener('click', ()=> { const m = random(motivators); pushMsg(m,'ai'); playSfx(); })
+    $('#dailyBtn').addEventListener('click', ()=> { const d = store.get('ntp_daily') || random(motivators); pushMsg(d,'ai'); });
+
+    // Load saved conversation
+    function renderSavedConv(){ const conv = store.get('ntp_conv', []); const box = $('#chatBox'); box.innerHTML=''; if(!conv || conv.length===0) { pushMsg('¡Hola! Soy tu apoyo. Escribe cómo te sientes o pulsa \"Envíame ánimo\".','ai'); return } conv.forEach(m=>{ const el=document.createElement('div'); el.className = m.who==='user'? 'msg-user':'msg-ai'; el.textContent = m.text; box.appendChild(el) }); box.scrollTop = box.scrollHeight; }
+
+    // Init
+    function init(){
+      applySettings(); renderStreak(); renderCalendar(); renderChallenges(); renderTips(); renderSavedConv();
+      const phrases = ['Siempre eres más fuerte de lo que crees.','Hoy merece una sonrisa.','Un paso pequeño hoy es un gran avance mañana.','Respira. Estás haciendo lo mejor que puedes.'];
+      const today = new Date().toISOString().slice(0,10); const seen = store.get('ntp_phrase_date');
+      if (seen !== today){ store.set('ntp_phrase_date', today); store.set('ntp_daily', phrases[Math.floor(Math.random()*phrases.length)]) }
+      $('#dailyPhrase').textContent = store.get('ntp_daily');
+    }
+    init();
+
+    window.ntp = { store, markToday, aiReply, getProgress:getProgress };
+  </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const savedTheme = localStorage.getItem("theme") || "light";
+  document.body.classList.add(savedTheme + "-mode");
+
+  const themeToggle = document.getElementById("theme-toggle");
+  if (themeToggle) {
+    themeToggle.addEventListener("click", () => {
+      if (document.body.classList.contains("light-mode")) {
+        document.body.classList.replace("light-mode", "dark-mode");
+        localStorage.setItem("theme", "dark");
+      } else {
+        document.body.classList.replace("dark-mode", "light-mode");
+        localStorage.setItem("theme", "light");
+      }
+    });
+  }
+});
+
+// Ajustar colores de confetti según tema
+function launchConfetti() {
+  const isDark = document.body.classList.contains("dark-mode");
+  const colors = isDark ? ['#39ff14', '#00e5ff', '#ff00ff', '#fffb00'] : ['#ff0', '#0f0', '#00f', '#f0f'];
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { y: 0.6 },
+    colors: colors
+  });
+}
+</script>
+
+</body>
+</html>
